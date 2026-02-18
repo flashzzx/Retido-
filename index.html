@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Notas Acadêmicas</title>
+    <style>
+        :root {
+            --primary: #4a90e2;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --bg: #f4f7f6;
+            --card: #ffffff;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: var(--bg); 
+            margin: 0; 
+            padding: 20px; 
+            color: #333; 
+        }
+
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+        }
+
+        h1 { 
+            text-align: center; 
+            color: #2c3e50; 
+            margin-bottom: 30px;
+        }
+
+        .grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 20px; 
+            margin-bottom: 20px; 
+        }
+
+        .card { 
+            background: var(--card); 
+            padding: 20px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+        }
+        
+        .form-group { margin-bottom: 15px; }
+
+        label { 
+            display: block; 
+            margin-bottom: 5px; 
+            font-weight: bold; 
+            font-size: 0.9em; 
+        }
+
+        select, input { 
+            width: 100%; 
+            padding: 10px; 
+            border: 1px solid #ddd; 
+            border-radius: 6px; 
+            box-sizing: border-box; 
+            font-size: 16px; /* Evita zoom automático no mobile */
+        }
+
+        .result-box { 
+            text-align: center; 
+            margin-top: 15px; 
+            padding: 10px; 
+            background: #f8f9fa; 
+            border-radius: 8px; 
+            border: 1px dashed #ccc;
+        }
+
+        .result-value { 
+            font-size: 1.5em; 
+            font-weight: bold; 
+            color: var(--primary); 
+        }
+
+        #resultado-final-container { 
+            display: none; 
+            margin-top: 30px; 
+            text-align: center; 
+            animation: fadeIn 0.5s ease-in-out; 
+        }
+
+        .situation { 
+            padding: 10px 20px; 
+            border-radius: 20px; 
+            color: white; 
+            display: inline-block; 
+            font-weight: bold; 
+            margin-top: 10px; 
+            text-transform: uppercase;
+        }
+
+        .aprovado { background: var(--success); }
+        .af { background: var(--warning); }
+        .reprovado { background: var(--danger); }
+
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(10px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+
+        @media (max-width: 600px) { 
+            .grid { grid-template-columns: 1fr; } 
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎓 Calculadora de Média</h1>
+
+    <div class="grid">
+        <div class="card">
+            <h3>Primeira Etapa (N1)</h3>
+            <div class="form-group">
+                <label>Modelo de Avaliação</label>
+                <select id="modelo-n1">
+                    <option value="media-simples-2">Média Simples (2 notas)</option>
+                    <option value="media-simples-3">Média Simples (3 notas)</option>
+                    <option value="soma-direta-2">Soma Direta (Max 10)</option>
+                    <option value="peso-maior-menor">Peso 2 (Maior) + Peso 1 (Menor)</option>
+                    <option value="prova-atividades">Prova (70%) + Atividades (30%)</option>
+                </select>
+            </div>
+            <div id="inputs-n1"></div>
+            <div class="result-box" id="resultado-n1">
+                <label>Nota N1:</label>
+                <div class="result-value">-</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Segunda Etapa (N2)</h3>
+            <div class="form-group">
+                <label>Modelo de Avaliação</label>
+                <select id="modelo-n2">
+                    <option value="media-simples-2">Média Simples (2 notas)</option>
+                    <option value="media-simples-3">Média Simples (3 notas)</option>
+                    <option value="soma-direta-2">Soma Direta (Max 10)</option>
+                    <option value="peso-maior-menor">Peso 2 (Maior) + Peso 1 (Menor)</option>
+                    <option value="prova-atividades">Prova (70%) + Atividades (30%)</option>
+                </select>
+            </div>
+            <div id="inputs-n2"></div>
+            <div class="result-box" id="resultado-n2">
+                <label>Nota N2:</label>
+                <div class="result-value">-</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="resultado-final-container" class="card">
+        <h2>Média Final: <span id="media-final-valor">0.0</span></h2>
+        <div id="situacao-valor" class="situation">---</div>
+        <div id="nota-af-container" style="margin-top: 15px; display: none;">
+            <p>Você precisa tirar <strong><span id="nota-af-valor">0.0</span></strong> na Prova Final para ser aprovado.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+function criarInputs(containerId, modelo) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    container.innerHTML = "";
+    let nomesInputs = [];
+
+    if (modelo === "media-simples-3") {
+        nomesInputs = ["P1", "P2", "P3"];
+    } else if (modelo === "media-simples-2" || modelo === "soma-direta-2") {
+        nomesInputs = ["P1", "P2"];
+    } else if (modelo === "peso-maior-menor") {
+        nomesInputs = ["Nota 1", "Nota 2"];
+    } else if (modelo === "prova-atividades") {
+        nomesInputs = ["Prova", "Atividades"];
+    }
+
+    nomesInputs.forEach(nome => {
+        const div = document.createElement("div");
+        div.className = "form-group";
+        div.innerHTML = `
+            <label>${nome}</label>
+            <input type="number" min="0" max="10" step="0.1" class="form-control nota-input" placeholder="0.0">
+        `;
+        container.appendChild(div);
+    });
+}
+
+function calcularNotaIndividual(containerId, modelo) {
+    const inputs = document.querySelectorAll(`#${containerId} .nota-input`);
+    const inputsArray = Array.from(inputs);
+    
+    if (inputsArray.some(i => i.value === "")) return null;
+
+    let valores = inputsArray.map(i => Number(i.value));
+    let resultado = 0;
+
+    switch (modelo) {
+        case "media-simples-3":
+            resultado = (valores[0] + valores[1] + valores[2]) / 3;
+            break;
+        case "media-simples-2":
+            resultado = (valores[0] + valores[1]) / 2;
+            break;
+        case "soma-direta-2":
+            resultado = valores[0] + valores[1];
+            break;
+        case "peso-maior-menor":
+            const maior = Math.max(...valores);
+            const menor = Math.min(...valores);
+            resultado = (maior * 2 + menor) / 3;
+            break;
+        case "prova-atividades":
+            resultado = (valores[0] * 7 + valores[1] * 3) / 10;
+            break;
+    }
+
+    return Math.min(Math.max(resultado, 0), 10);
+}
+
+function atualizarResultadoGeral() {
+    const modeloN1 = document.getElementById("modelo-n1").value;
+    const modeloN2 = document.getElementById("modelo-n2").value;
+
+    const n1 = calcularNotaIndividual("inputs-n1", modeloN1);
+    const n2 = calcularNotaIndividual("inputs-n2", modeloN2);
+
+    if (n1 === null || n2 === null) return;
+
+    const displayN1 = document.querySelector("#resultado-n1 .result-value");
+    const displayN2 = document.querySelector("#resultado-n2 .result-value");
+    if (displayN1) displayN1.textContent = n1.toFixed(1);
+    if (displayN2) displayN2.textContent = n2.toFixed(1);
+
+    const mediaFinal = (n1 * 2 + n2 * 3) / 5;
+
+    const finalContainer = document.getElementById("resultado-final-container");
+    finalContainer.style.display = "block";
+    
+    document.getElementById("media-final-valor").textContent = mediaFinal.toFixed(1);
+
+    const situacao = document.getElementById("situacao-valor");
+    const afContainer = document.getElementById("nota-af-container");
+
+    if (mediaFinal >= 6) {
+        situacao.textContent = "Aprovado";
+        situacao.className = "situation aprovado";
+        afContainer.style.display = "none";
+    } else if (mediaFinal >= 3) {
+        situacao.textContent = "Avaliação Final";
+        situacao.className = "situation af";
+        afContainer.style.display = "block";
+        document.getElementById("nota-af-valor").textContent = (10 - mediaFinal).toFixed(1);
+    } else {
+        situacao.textContent = "Reprovado";
+        situacao.className = "situation reprovado";
+        afContainer.style.display = "none";
+    }
+}
+
+// Event Listeners
+document.getElementById("modelo-n1").addEventListener("change", e => {
+    criarInputs("inputs-n1", e.target.value);
+});
+
+document.getElementById("modelo-n2").addEventListener("change", e => {
+    criarInputs("inputs-n2", e.target.value);
+});
+
+document.addEventListener("input", atualizarResultadoGeral);
+
+// Início automático
+window.onload = () => {
+    criarInputs("inputs-n1", document.getElementById("modelo-n1").value);
+    criarInputs("inputs-n2", document.getElementById("modelo-n2").value);
+};
+</script>
+
+</body>
+</html>
